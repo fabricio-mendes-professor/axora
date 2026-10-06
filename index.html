@@ -1,0 +1,719 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AXORA - O Desafio Matemático</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    body {
+      background: #0d0f18;
+      color: #FFF;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+    #game-container {
+      position: relative;
+      width: 100%;
+      max-width: 640px;
+    }
+    /* HUD Superior */
+    #hud {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #1a1c29;
+      border: 3px solid #D4AF37;
+      border-bottom: none;
+      border-radius: 8px 8px 0 0;
+      padding: 8px 16px;
+      font-weight: bold;
+      color: #D4AF37;
+      font-size: 0.95rem;
+    }
+    .hud-item { display: flex; align-items: center; gap: 6px; }
+    canvas {
+      background: #161824;
+      border: 3px solid #D4AF37;
+      border-radius: 0 0 8px 8px;
+      display: block;
+      width: 100%;
+      height: auto;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.7);
+    }
+    /* Modais */
+    .custom-modal {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #1a1c29;
+      border: 4px solid #D4AF37;
+      border-radius: 12px;
+      padding: 22px;
+      text-align: center;
+      width: 88%;
+      max-width: 440px;
+      box-shadow: 0 0 35px rgba(212, 175, 55, 0.4);
+      z-index: 10;
+    }
+    .custom-modal h2 {
+      color: #D4AF37;
+      margin-bottom: 10px;
+      font-size: 1.6rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .custom-modal p {
+      font-size: 1rem;
+      line-height: 1.4;
+      margin-bottom: 14px;
+      color: #E2E8F0;
+    }
+    .custom-modal input {
+      width: 75%;
+      padding: 10px;
+      font-size: 1.1rem;
+      text-align: center;
+      border: 2px solid #D4AF37;
+      border-radius: 6px;
+      background: #0d0f18;
+      color: #FFF;
+      margin-bottom: 14px;
+      outline: none;
+    }
+    .btn-game {
+      background: #D4AF37;
+      color: #0d0f18;
+      border: none;
+      padding: 12px 24px;
+      font-size: 1rem;
+      font-weight: bold;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin: 4px;
+    }
+    .btn-game:hover {
+      background: #F3C623;
+      transform: scale(1.03);
+    }
+    /* Controles Mobile */
+    #touch-controls-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      margin-top: 10px;
+    }
+    #touch-controls {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      width: 170px;
+    }
+    .btn-touch {
+      background: #1a1c29;
+      color: #D4AF37;
+      border: 2px solid #D4AF37;
+      padding: 10px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      border-radius: 8px;
+      touch-action: manipulation;
+    }
+    .btn-touch:active { background: #D4AF37; color: #0d0f18; }
+    
+    .btn-attack {
+      background: #D90429;
+      color: #FFF;
+      border: 2px solid #FF4D6D;
+      padding: 18px 16px;
+      font-size: 0.95rem;
+      font-weight: bold;
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(217, 4, 41, 0.5);
+      touch-action: manipulation;
+    }
+    .btn-attack:active {
+      background: #FF4D6D;
+      transform: scale(0.95);
+    }
+  </style>
+</head>
+<body>
+
+  <div id="game-container">
+    <div id="hud">
+      <div class="hud-item"><span id="hud-hp">❤️❤️❤️</span></div>
+      <div class="hud-item">FASE: <span id="hud-level">1/3</span></div>
+      <div class="hud-item">PONTOS: <span id="hud-score">0</span></div>
+    </div>
+
+    <canvas id="gameCanvas" width="640" height="384"></canvas>
+
+    <!-- Menu Inicial -->
+    <div id="start-menu" class="custom-modal">
+      <h2>AXORA</h2>
+      <p>Percorra o labirinto, elimine os monstros e resolva os desafios matemáticos para abrir as portas.</p>
+      <p style="font-size: 0.85rem; color: #A0AEC0; margin-bottom: 14px;">Ataque com <strong style="color: #D4AF37;">ESPAÇO</strong> no teclado ou no botão de ataque.</p>
+      <button class="btn-game" onclick="startGame()">Iniciar Jornada</button>
+    </div>
+
+    <!-- Janela de Desafio -->
+    <div id="puzzle-modal" class="custom-modal" style="display: none;">
+      <h2>Desafio do Baú</h2>
+      <p id="puzzle-topic" style="font-size: 0.85rem; color: #D4AF37; font-weight: bold; margin-bottom: 6px;"></p>
+      <p id="puzzle-question"></p>
+      <input type="text" id="puzzle-answer" placeholder="Digite sua resposta" autocomplete="off" />
+      <br>
+      <button class="btn-game" onclick="checkAnswer()">Responder</button>
+    </div>
+
+    <!-- Janela de Resultado / Feedback -->
+    <div id="result-modal" class="custom-modal" style="display: none;">
+      <h2 id="result-title"></h2>
+      <p id="result-message"></p>
+      <button class="btn-game" onclick="closeResultModal()">Continuar</button>
+    </div>
+
+    <!-- Janela de Game Over -->
+    <div id="gameover-modal" class="custom-modal" style="display: none;">
+      <h2 style="color: #D90429;">SUAS FORÇAS ACABARAM!</h2>
+      <p>Você perdeu todas as vidas nos perigos de Axora.</p>
+      <button class="btn-game" onclick="restartLevel()">Tentar Novamente</button>
+    </div>
+
+    <!-- Janela de Vitória Final -->
+    <div id="victory-modal" class="custom-modal" style="display: none;">
+      <h2 style="color: #4E9F3D;">VITÓRIA EM AXORA!</h2>
+      <p>Você dominou todos os labirintos e desvendou os enigmas com maestria!</p>
+      <p>Pontuação Final: <span id="final-score" style="color: #D4AF37; font-weight: bold;">0</span></p>
+      <button class="btn-game" onclick="location.reload()">Jogar Novamente</button>
+    </div>
+  </div>
+
+  <div id="touch-controls-container">
+    <div id="touch-controls">
+      <div></div>
+      <button class="btn-touch" ontouchstart="move('Up')" onmouseleave="stop('Up')">▲</button>
+      <div></div>
+      <button class="btn-touch" ontouchstart="move('Left')" onmouseleave="stop('Left')">◄</button>
+      <button class="btn-touch" ontouchstart="move('Down')" onmouseleave="stop('Down')">▼</button>
+      <button class="btn-touch" ontouchstart="move('Right')" onmouseleave="stop('Right')">►</button>
+    </div>
+    <button class="btn-attack" ontouchstart="triggerAttack()">⚔️ ATACAR</button>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const TILE_SIZE = 32;
+    const COLS = 20;
+    const ROWS = 12;
+
+    let gameState = 'MENU';
+    let hp = 3;
+    let score = 0;
+    let currentLevelIndex = 0;
+    let currentPuzzle = null;
+    let activeChestIndex = -1;
+    let isPuzzleOpen = false;
+
+    // Estado do Ataque
+    let isAttacking = false;
+    let attackTimer = 0;
+
+    const keys = {};
+    window.addEventListener('keydown', e => {
+      keys[e.key] = true;
+      if ((e.code === 'Space' || e.key === 'e' || e.key === 'E') && gameState === 'PLAYING') {
+        triggerAttack();
+      }
+    });
+    window.addEventListener('keyup', e => keys[e.key] = false);
+
+    function move(dir) { keys['Arrow' + dir] = true; }
+    function stop(dir) { keys['Arrow' + dir] = false; }
+
+    function triggerAttack() {
+      if (gameState !== 'PLAYING' || isAttacking) return;
+      isAttacking = true;
+      attackTimer = 12;
+
+      const attackRange = 42;
+      const playerCenterX = player.x + player.width / 2;
+      const playerCenterY = player.y + player.height / 2;
+
+      currentMonsters = currentMonsters.filter(m => {
+        const monsterCenterX = m.x * TILE_SIZE + 12;
+        const monsterCenterY = m.y * TILE_SIZE + 12;
+
+        const dist = Math.hypot(monsterCenterX - playerCenterX, monsterCenterY - playerCenterY);
+        if (dist <= attackRange) {
+          score += 50;
+          updateHUD();
+          return false;
+        }
+        return true;
+      });
+    }
+
+    // Desafios Matemáticos
+    const puzzles = [
+      { topic: "NÚMEROS REAIS", question: "Qual dos números a seguir é IRRACIONAL?<br>A) √4 &nbsp;&nbsp; B) √9 &nbsp;&nbsp; C) √7 &nbsp;&nbsp; D) 0,5", answer: "c" },
+      { topic: "POTENCIAÇÃO", question: "Qual o valor de 2⁻³ em forma de fração?", answer: "1/8" },
+      { topic: "RADICIAÇÃO", question: "Simplifique a expressão √50.<br>A) 5√2 &nbsp;&nbsp; B) 2√5 &nbsp;&nbsp; C) 10√5", answer: "a" },
+      { topic: "EXPOENTE FRACIONÁRIO", question: "Qual o valor de 8^(2/3)?", answer: "4" },
+      { topic: "EQUAÇÃO DO 2º GRAU", question: "Quais as raízes de x² - 5x + 6 = 0?", answer: "2,3" },
+      { topic: "EQUAÇÃO DO 2º GRAU", question: "Qual o valor de Δ (discriminante) em x² - 4x + 4 = 0?", answer: "0" },
+      { topic: "SOMA E PRODUTO", question: "Se a soma das raízes de x² - Sx + P = 0 é 7 e o produto é 12, qual a MAIOR raiz?", answer: "4" },
+      { topic: "PRODUTOS NOTÁVEIS", question: "Desenvolva (x + 3)². Qual o termo independente (número sem x)?", answer: "9" },
+      { topic: "FATORAÇÃO", question: "Fatore x² - 16. O resultado é (x - 4) multiplicado por qual termo?", answer: "x+4" },
+      { topic: "MEDIDAS DE INFORMAÇÃO", question: "Quantos Megabytes (MB) equivalem a 2 Gigabytes (GB)?", answer: "2048" },
+      { topic: "RAZÕES COMPOSTAS", question: "Um veículo anda 300 km em 4 horas. Qual a velocidade média em km/h?", answer: "75" },
+      { topic: "DENSIDADE DEMOGRÁFICA", question: "Cidade com 50.000 hab. e área de 200 km². Qual a densidade em hab/km²?", answer: "250" }
+    ];
+
+    const levels = [
+      {
+        map: [
+          [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+          [1,0,0,0,1,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1],
+          [1,0,1,0,1,0,1,1,0,1,0,1,1,1,1,0,1,1,0,1],
+          [1,0,1,0,0,0,0,1,0,0,0,1,0,0,1,0,0,1,0,1],
+          [1,0,1,1,1,1,0,1,1,1,0,1,1,0,1,1,0,1,0,1],
+          [1,0,0,0,2,1,0,0,0,1,0,0,0,0,0,1,0,1,0,1],
+          [1,1,1,0,1,1,1,1,0,1,1,1,1,1,0,1,0,1,0,1],
+          [1,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,1,0,1],
+          [1,0,1,1,1,1,0,1,1,1,1,1,0,1,1,1,0,1,0,1],
+          [1,0,1,0,0,0,0,0,0,2,0,1,0,0,0,1,0,0,0,1],
+          [1,0,0,0,1,1,1,1,1,1,0,0,0,1,0,0,0,1,0,1],
+          [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+        ],
+        playerStart: { x: 1, y: 1 },
+        door: { x: 18, y: 1, open: false },
+        chests: [{ x: 9, y: 1, opened: false }],
+        monsters: [
+          { x: 5, y: 1, dir: 1, axis: 'y', min: 1, max: 3, speed: 1.5 },
+          { x: 12, y: 9, dir: 1, axis: 'x', min: 12, max: 14, speed: 1.5 }
+        ]
+      },
+      {
+        map: [
+          [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+          [1,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,1],
+          [1,1,1,1,0,1,0,1,1,1,1,0,1,0,1,1,1,1,0,1],
+          [1,0,0,1,0,0,0,1,2,0,1,0,0,0,1,0,0,1,0,1],
+          [1,0,1,1,1,1,0,1,1,0,1,1,1,0,1,1,0,1,0,1],
+          [1,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,1,0,1],
+          [1,1,1,1,0,1,1,1,0,1,1,0,1,1,1,1,0,1,0,1],
+          [1,0,0,0,0,0,0,1,0,0,1,0,0,0,2,1,0,0,0,1],
+          [1,0,1,1,1,1,0,1,1,0,1,1,1,1,0,1,1,1,0,1],
+          [1,0,0,2,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,1],
+          [1,0,1,1,0,0,0,1,1,1,1,1,0,0,0,1,1,1,0,1],
+          [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+        ],
+        playerStart: { x: 1, y: 1 },
+        door: { x: 18, y: 9, open: false },
+        chests: [{ x: 18, y: 3, opened: false }, { x: 1, y: 9, opened: false }],
+        monsters: [
+          { x: 1, y: 5, dir: 1, axis: 'x', min: 1, max: 4, speed: 2 },
+          { x: 11, y: 1, dir: 1, axis: 'y', min: 1, max: 2, speed: 2 },
+          { x: 16, y: 7, dir: 1, axis: 'x', min: 16, max: 18, speed: 2 }
+        ]
+      },
+      {
+        map: [
+          [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+          [1,0,0,0,1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1],
+          [1,0,1,0,1,0,1,1,1,1,1,1,0,1,0,1,1,1,0,1],
+          [1,0,1,0,0,0,1,2,0,0,0,1,0,0,0,1,0,0,0,1],
+          [1,0,1,1,1,0,1,0,1,1,0,1,1,1,0,1,0,1,1,1],
+          [1,0,0,0,1,0,0,0,1,0,0,0,0,1,0,0,0,1,0,1],
+          [1,1,1,0,1,1,1,0,1,0,1,1,0,1,1,1,0,1,0,1],
+          [1,0,0,0,2,0,1,0,0,0,0,1,0,0,0,2,0,0,0,1],
+          [1,0,1,1,1,0,1,1,1,1,0,1,1,1,1,1,1,1,0,1],
+          [1,0,0,0,1,0,0,0,2,1,0,0,0,0,0,0,0,0,0,1],
+          [1,1,1,0,0,0,1,1,0,0,0,1,1,1,1,1,1,1,0,1],
+          [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+        ],
+        playerStart: { x: 1, y: 1 },
+        door: { x: 10, y: 9, open: false },
+        chests: [{ x: 18, y: 3, opened: false }, { x: 1, y: 9, opened: false }, { x: 18, y: 7, opened: false }],
+        monsters: [
+          { x: 5, y: 1, dir: 1, axis: 'y', min: 1, max: 3, speed: 2.2 },
+          { x: 14, y: 1, dir: 1, axis: 'x', min: 14, max: 18, speed: 2.2 },
+          { x: 12, y: 7, dir: 1, axis: 'x', min: 12, max: 14, speed: 2.2 },
+          { x: 1, y: 9, dir: 1, axis: 'x', min: 1, max: 3, speed: 2 }
+        ]
+      }
+    ];
+
+    let player = { x: 0, y: 0, width: 24, height: 24, speed: 2.5 };
+    let currentMap = [];
+    let currentChests = [];
+    let currentMonsters = [];
+    let currentDoor = {};
+
+    function updateHUD() {
+      let hearts = "";
+      for (let i = 0; i < hp; i++) hearts += "❤️";
+      document.getElementById('hud-hp').innerText = hearts || "💀";
+      document.getElementById('hud-level').innerText = `${currentLevelIndex + 1}/${levels.length}`;
+      document.getElementById('hud-score').innerText = score;
+    }
+
+    function loadLevel(index) {
+      currentLevelIndex = index;
+      activeChestIndex = -1;
+      isPuzzleOpen = false;
+      const lvl = levels[index];
+      currentMap = JSON.parse(JSON.stringify(lvl.map));
+      currentChests = JSON.parse(JSON.stringify(lvl.chests));
+      currentMonsters = JSON.parse(JSON.stringify(lvl.monsters));
+      currentDoor = JSON.parse(JSON.stringify(lvl.door));
+      
+      player.x = lvl.playerStart.x * TILE_SIZE + 4;
+      player.y = lvl.playerStart.y * TILE_SIZE + 4;
+      
+      updateHUD();
+    }
+
+    function startGame() {
+      hp = 3;
+      score = 0;
+      loadLevel(0);
+      gameState = 'PLAYING';
+      document.getElementById('start-menu').style.display = 'none';
+    }
+
+    function takeDamage(msg) {
+      hp--;
+      updateHUD();
+      if (hp <= 0) {
+        gameState = 'GAMEOVER';
+        document.getElementById('gameover-modal').style.display = 'block';
+      } else {
+        const lvl = levels[currentLevelIndex];
+        player.x = lvl.playerStart.x * TILE_SIZE + 4;
+        player.y = lvl.playerStart.y * TILE_SIZE + 4;
+        
+        document.getElementById('result-title').innerText = "CUIDADO!";
+        document.getElementById('result-title').style.color = "#D90429";
+        document.getElementById('result-message').innerText = msg + " Você perdeu 1 vida!";
+        document.getElementById('result-modal').style.display = 'block';
+        gameState = 'RESULT';
+      }
+    }
+
+    function restartLevel() {
+      hp = 3;
+      document.getElementById('gameover-modal').style.display = 'none';
+      loadLevel(currentLevelIndex);
+      gameState = 'PLAYING';
+    }
+
+    function isWall(x, y) {
+      const tileX = Math.floor(x / TILE_SIZE);
+      const tileY = Math.floor(y / TILE_SIZE);
+      if (tileX < 0 || tileX >= COLS || tileY < 0 || tileY >= ROWS) return true;
+      return currentMap[tileY] && currentMap[tileY][tileX] === 1;
+    }
+
+    function checkWallCollision(newX, newY) {
+      return isWall(newX, newY) ||
+             isWall(newX + player.width, newY) ||
+             isWall(newX, newY + player.height) ||
+             isWall(newX + player.width, newY + player.height);
+    }
+
+    function openPuzzle(chestIndex) {
+      if (isPuzzleOpen) return;
+      isPuzzleOpen = true;
+      gameState = 'PUZZLE';
+      activeChestIndex = chestIndex;
+      currentPuzzle = puzzles[Math.floor(Math.random() * puzzles.length)];
+      
+      document.getElementById('puzzle-topic').innerText = currentPuzzle.topic;
+      document.getElementById('puzzle-question').innerHTML = currentPuzzle.question;
+      document.getElementById('puzzle-answer').value = '';
+      document.getElementById('puzzle-modal').style.display = 'block';
+    }
+
+    function checkAnswer() {
+      const input = document.getElementById('puzzle-answer').value.trim().toLowerCase();
+      document.getElementById('puzzle-modal').style.display = 'none';
+
+      const resultTitle = document.getElementById('result-title');
+      const resultMessage = document.getElementById('result-message');
+
+      if (input === currentPuzzle.answer.toLowerCase()) {
+        if (activeChestIndex !== -1 && currentChests[activeChestIndex]) {
+          currentChests[activeChestIndex].opened = true;
+        }
+        score += 100;
+        updateHUD();
+
+        const allOpened = currentChests.every(c => c.opened);
+        if (allOpened) {
+          currentDoor.open = true;
+          resultMessage.innerText = "Resposta CORRETA! (+100 Pontos). Todos os baús foram abertos e a PORTA DA SAÍDA SE DESTRANCOU!";
+        } else {
+          resultMessage.innerText = "Resposta CORRETA! (+100 Pontos). Encontre o restante dos baús para liberar a saída.";
+        }
+
+        resultTitle.innerText = "SABEDORIA PROVADA!";
+        resultTitle.style.color = "#4E9F3D";
+      } else {
+        resultTitle.innerText = "RESPOSTA INCORRETA";
+        resultTitle.style.color = "#D90429";
+        takeDamage(`Resposta incorreta! A resposta era ${currentPuzzle.answer}.`);
+        return;
+      }
+
+      gameState = 'RESULT';
+      document.getElementById('result-modal').style.display = 'block';
+    }
+
+    function closeResultModal() {
+      document.getElementById('result-modal').style.display = 'none';
+      activeChestIndex = -1;
+      isPuzzleOpen = false;
+      gameState = 'PLAYING';
+    }
+
+    function update() {
+      if (gameState !== 'PLAYING') return;
+
+      if (isAttacking) {
+        attackTimer--;
+        if (attackTimer <= 0) isAttacking = false;
+      }
+
+      let nextX = player.x;
+      let nextY = player.y;
+
+      if (keys['ArrowUp'] || keys['w']) nextY -= player.speed;
+      if (keys['ArrowDown'] || keys['s']) nextY += player.speed;
+      if (keys['ArrowLeft'] || keys['a']) nextX -= player.speed;
+      if (keys['ArrowRight'] || keys['d']) nextX += player.speed;
+
+      if (!checkWallCollision(nextX, player.y)) player.x = nextX;
+      if (!checkWallCollision(player.x, nextY)) player.y = nextY;
+
+      const centerTileX = Math.floor((player.x + player.width/2) / TILE_SIZE);
+      const centerTileY = Math.floor((player.y + player.height/2) / TILE_SIZE);
+      if (currentMap[centerTileY] && currentMap[centerTileY][centerTileX] === 2) {
+        takeDamage("Você pisou em armadilhas de espinhos!");
+        return;
+      }
+
+      // Verificação Ampliada de Proximidade com os Baús Fechados
+      const margin = 4;
+      for (let idx = 0; idx < currentChests.length; idx++) {
+        const chest = currentChests[idx];
+        if (!chest.opened) {
+          const chestX = chest.x * TILE_SIZE;
+          const chestY = chest.y * TILE_SIZE;
+          
+          if (player.x < chestX + TILE_SIZE + margin && 
+              player.x + player.width + margin > chestX &&
+              player.y < chestY + TILE_SIZE + margin && 
+              player.y + player.height + margin > chestY) {
+            openPuzzle(idx);
+            break;
+          }
+        }
+      }
+
+      // Verificação da Porta
+      const doorX = currentDoor.x * TILE_SIZE;
+      const doorY = currentDoor.y * TILE_SIZE;
+      if (player.x < doorX + TILE_SIZE && player.x + player.width > doorX &&
+          player.y < doorY + TILE_SIZE && player.y + player.height > doorY) {
+        if (currentDoor.open) {
+          if (currentLevelIndex + 1 < levels.length) {
+            loadLevel(currentLevelIndex + 1);
+          } else {
+            gameState = 'VICTORY';
+            document.getElementById('final-score').innerText = score;
+            document.getElementById('victory-modal').style.display = 'block';
+          }
+        }
+      }
+
+      // Verificação e Movimentação dos Monstros
+      currentMonsters.forEach(m => {
+        let step = m.speed * m.dir * 0.03;
+        let nextMX = m.x;
+        let nextMY = m.y;
+
+        if (m.axis === 'x') {
+          nextMX += step;
+        } else {
+          nextMY += step;
+        }
+
+        const checkM1X = nextMX * TILE_SIZE + 2;
+        const checkM1Y = nextMY * TILE_SIZE + 2;
+        const checkM2X = nextMX * TILE_SIZE + 22;
+        const checkM2Y = nextMY * TILE_SIZE + 22;
+
+        const collidedWall = isWall(checkM1X, checkM1Y) || isWall(checkM2X, checkM1Y) || 
+                             isWall(checkM1X, checkM2Y) || isWall(checkM2X, checkM2Y);
+
+        if (collidedWall || (m.axis === 'x' && (nextMX >= m.max || nextMX <= m.min)) || 
+            (m.axis === 'y' && (nextMY >= m.max || nextMY <= m.min))) {
+          m.dir *= -1;
+        } else {
+          m.x = nextMX;
+          m.y = nextMY;
+        }
+
+        const mRealX = m.x * TILE_SIZE;
+        const mRealY = m.y * TILE_SIZE;
+
+        if (player.x < mRealX + 24 && player.x + player.width > mRealX &&
+            player.y < mRealY + 24 && player.y + player.height > mRealY) {
+          takeDamage("Um Guardião do Labirinto atacou você!");
+        }
+      });
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (gameState === 'MENU') {
+        ctx.fillStyle = '#161824';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        return;
+      }
+
+      // Desenhar mapa
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          const tile = currentMap[r] ? currentMap[r][c] : 0;
+          const x = c * TILE_SIZE;
+          const y = r * TILE_SIZE;
+
+          if (tile === 1) {
+            ctx.fillStyle = '#2d3142';
+            ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+            ctx.strokeStyle = '#4f5d75';
+            ctx.strokeRect(x, y, TILE_SIZE, TILE_SIZE);
+          } else if (tile === 2) {
+            ctx.fillStyle = '#161824';
+            ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+            ctx.fillStyle = '#d90429';
+            ctx.beginPath();
+            ctx.moveTo(x + 4, y + 28); ctx.lineTo(x + 16, y + 6); ctx.lineTo(x + 28, y + 28);
+            ctx.fill();
+          } else {
+            ctx.fillStyle = '#1c1e2e';
+            ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+          }
+        }
+      }
+
+      // Desenhar baús
+      currentChests.forEach(chest => {
+        const cx = chest.x * TILE_SIZE + 4;
+        const cy = chest.y * TILE_SIZE + 6;
+        if (!chest.opened) {
+          ctx.fillStyle = '#8B4513';
+          ctx.fillRect(cx, cy, 24, 20);
+          ctx.fillStyle = '#D4AF37';
+          ctx.fillRect(cx, cy + 6, 24, 3);
+          ctx.fillRect(cx + 10, cy + 9, 4, 5);
+        } else {
+          ctx.fillStyle = '#5c2c06';
+          ctx.fillRect(cx, cy + 6, 24, 14);
+          ctx.fillStyle = '#FFD700';
+          ctx.fillRect(cx + 4, cy + 2, 16, 5);
+        }
+      });
+
+      // Desenhar porta
+      if (currentDoor.x !== undefined) {
+        const dx = currentDoor.x * TILE_SIZE + 4;
+        const dy = currentDoor.y * TILE_SIZE + 2;
+        ctx.fillStyle = currentDoor.open ? '#4E9F3D' : '#8B0000';
+        ctx.fillRect(dx, dy, 24, 28);
+        ctx.fillStyle = '#D4AF37';
+        ctx.fillRect(dx + (currentDoor.open ? 18 : 4), dy + 12, 4, 4);
+      }
+
+      // Desenhar monstros
+      ctx.fillStyle = '#D90429';
+      currentMonsters.forEach(m => {
+        const mx = m.x * TILE_SIZE + 4;
+        const my = m.y * TILE_SIZE + 4;
+        ctx.beginPath();
+        ctx.arc(mx + 12, my + 12, 10, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#FFF';
+        ctx.fillRect(mx + 7, my + 8, 3, 3);
+        ctx.fillRect(mx + 14, my + 8, 3, 3);
+        ctx.fillStyle = '#D90429';
+      });
+
+      // Desenhar efeito de ataque
+      if (isAttacking) {
+        ctx.save();
+        ctx.strokeStyle = '#00F0FF';
+        ctx.lineWidth = 3;
+        ctx.shadowColor = '#00F0FF';
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+        ctx.arc(player.x + 12, player.y + 12, 28, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // Desenhar Jogador (Capa Verde)
+      ctx.save();
+      ctx.translate(player.x, player.y);
+
+      // Capa Verde
+      ctx.fillStyle = '#2E7D32';
+      ctx.fillRect(2, 8, 20, 15);
+
+      // Armadura / Túnica Verde Escura
+      ctx.fillStyle = '#1B5E20';
+      ctx.fillRect(6, 10, 12, 12);
+
+      // Rosto
+      ctx.fillStyle = '#FFCC99';
+      ctx.fillRect(6, 3, 12, 8);
+
+      // Cabelo / Capuz Verde
+      ctx.fillStyle = '#388E3C';
+      ctx.fillRect(5, 1, 14, 4);
+
+      // Espada
+      ctx.fillStyle = '#C0C0C0';
+      ctx.fillRect(20, isAttacking ? 0 : 4, 3, 14);
+      ctx.fillStyle = '#D4AF37';
+      ctx.fillRect(18, isAttacking ? 8 : 12, 7, 2);
+
+      ctx.restore();
+    }
+
+    function gameLoop() {
+      update();
+      draw();
+      requestAnimationFrame(gameLoop);
+    }
+
+    gameLoop();
+  </script>
+</body>
+</html>
